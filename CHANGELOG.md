@@ -7,6 +7,9 @@ This CHANGELOG follows the format listed [here](https://github.com/sensu-plugins
 ### Fixed
 - check-smart-status.rb - Check was ignoring all parameters, when ignore was not defined. @VeselaHouba
 
+### Changed
+- check-smart-status.rb Now returns disk path instead of Disk Class instance reference. @VeselaHouba
+
 ## [5.1.4] - 2020-11-05
 ### Fixed
 - change Sensu asset build definition to match ruby-runtime build collection. No change to underlying plugin functionality
