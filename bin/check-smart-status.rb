@@ -154,6 +154,13 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
          description: 'Process a debug file for testing',
          required: false
 
+  option :raid_type,
+         short: '-r megaraid',
+         long: '--raidtype megaraid',
+         description: 'Extra behavior for raid disks. Currently only megaraid implemented',
+         required: false,
+         default: 'none'
+
   # Main function
   #
   def run
@@ -194,7 +201,11 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
     att_check_list = find_attributes
 
     # Devices to check
-    devices = config[:debug_file].nil? ? find_devices : [Disk.new('sda', nil, nil)]
+    devices = if config[:raid_type] == 'megaraid'
+                config[:debug_file].nil? ? find_devices_megaraid : [Disk.new('sda', nil, nil)]
+              else
+                config[:debug_file].nil? ? find_devices : [Disk.new('sda', nil, nil)]
+              end
 
     # Overall health and attributes parameter
     parameters = '-H -A'
@@ -221,7 +232,7 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
 
       # check overall helath status
       if config[:overall] == 'on' && !output[dev].include?('SMART overall-health self-assessment test result: PASSED')
-        criticals << "Overall health check failed on #{dev.name}"
+        criticals << "Overall health check failed on #{dev.device_path}"
       end
 
       # #YELLOW
@@ -315,6 +326,37 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
       end
     end
 
+    devices
+  end
+
+  def find_devices_megaraid
+    # Search for devices without number
+    devices = []
+
+    # cycle through /dev/sd[a,b,...]
+    `lsblk -nro NAME,TYPE`.each_line do |line|
+      sdx, type = line.split
+      if type == 'disk'
+        # TODO: not only /c0
+        # get DIDs of devices
+        storcli = `sudo /usr/sbin/storcli /c0 /eall /sall show J`
+        parsed = JSON.parse(storcli)
+        critical "Can't get device ID from storcli" unless parsed['Controllers'][0]['Command Status']['Status'] == 'Success'
+        parsed['Controllers'][0]['Response Data']['Drive Information'].each do |drive|
+          # bit hacky, but use /dev/sdx -d megaraid,X as device path
+          name = "#{sdx} -d megaraid,#{drive['DID']}"
+          device = Disk.new(name, nil, nil)
+
+          # Check capability
+          output = `sudo #{config[:binary]} -i #{device.device_path}`
+
+          # Check if we can use this device or not
+          available = !output.scan(/SMART support is:\s+Available/).empty?
+          enabled = !output.scan(/SMART support is:\s+Enabled/).empty?
+          devices << device if available && enabled
+        end
+      end
+    end
     devices
   end
 

@@ -6,6 +6,7 @@ This CHANGELOG follows the format listed [here](https://github.com/sensu-plugins
 ## [Unreleased]
 ### Added
 - drone.yml - CI definition for drone.io as travis is no longer free. @VeselaHouba
+- check-smart-status.rb - Option to check megaraid devices using storcli and `-r megaraid` switch @VeselaHouba
 
 ## [5.1.5] - 2020-11-27
 ### Fixed
