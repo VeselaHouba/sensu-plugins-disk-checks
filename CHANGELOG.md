@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 This CHANGELOG follows the format listed [here](https://github.com/sensu-plugins/community/blob/master/HOW_WE_CHANGELOG.md)
 
 ## [Unreleased]
+
+## [5.1.6] - 2020-12-03
+### Removed
+- CentOS6 support (EOL)
+
 ### Added
 - drone.yml - CI definition for drone.io as travis is no longer free. @VeselaHouba
 - check-smart-status.rb - Option to check megaraid devices using storcli and `-r megaraid` switch @VeselaHouba
