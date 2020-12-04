@@ -330,25 +330,32 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
   end
 
   def find_devices_megaraid
-    # Search for devices without number
     devices = []
-    # TODO: not only /c0
-    # get DIDs of devices
-    storcli = `sudo /usr/sbin/storcli /c0 /eall /sall show J`
+    # List controllers
+    storcli = `sudo /usr/sbin/storcli show J`
     parsed = JSON.parse(storcli)
-    critical "Can't get device ID from storcli" unless parsed['Controllers'][0]['Command Status']['Status'] == 'Success'
-    parsed['Controllers'][0]['Response Data']['Drive Information'].each do |drive|
-      # bit hacky, but use /dev/sdx -d megaraid,X as device path
-      name = "sda -d megaraid,#{drive['DID']}"
-      device = Disk.new(name, nil, nil)
+    critical "Can't load controller from storcli" unless parsed['Controllers'][0]['Command Status']['Status'] == 'Success'
+    ctlnum = parsed['Controllers'][0]['Response Data']['Number of Controllers']
+    # loop through number of controllers
+    (0..ctlnum - 1).each do |ctlid|
+      storcli = `sudo /usr/sbin/storcli /c#{ctlid} /eall /sall show J`
+      # get DIDs of devices
+      storcli = `sudo /usr/sbin/storcli /c0 /eall /sall show J`
+      parsed = JSON.parse(storcli)
+      critical "Can't get device ID from storcli" unless parsed['Controllers'][0]['Command Status']['Status'] == 'Success'
+      parsed['Controllers'][0]['Response Data']['Drive Information'].each do |drive|
+        # bit hacky, but use /dev/sdx -d megaraid,X as device path
+        name = "sda -d megaraid,#{drive['DID']}"
+        device = Disk.new(name, nil, nil)
 
-      # Check capability
-      output = `sudo #{config[:binary]} -i #{device.device_path}`
+        # Check capability
+        output = `sudo #{config[:binary]} -i #{device.device_path}`
 
-      # Check if we can use this device or not
-      available = !output.scan(/SMART support is:\s+Available/).empty?
-      enabled = !output.scan(/SMART support is:\s+Enabled/).empty?
-      devices << device if available && enabled
+        # Check if we can use this device or not
+        available = !output.scan(/SMART support is:\s+Available/).empty?
+        enabled = !output.scan(/SMART support is:\s+Enabled/).empty?
+        devices << device if available && enabled
+      end
     end
     devices
   end
