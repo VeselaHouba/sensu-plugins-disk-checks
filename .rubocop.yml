@@ -8,7 +8,7 @@ LineLength:
   Max: 175
 
 AbcSize:
-  Max: 175
+  Max: 200
 
 FileName:
   Enabled: false

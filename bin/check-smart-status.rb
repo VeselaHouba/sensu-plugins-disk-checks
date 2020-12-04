@@ -51,6 +51,7 @@
 #   -d: Devices to check (default: all)
 #   --debug: turn debug output on (default: off)
 #   --debug_file: process this file instead of smartctl output for testing
+#   -i: Append extra info to output - Drive model, S/N and capacity
 #
 # NOTES:
 #
@@ -161,6 +162,14 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
          required: false,
          default: 'none'
 
+  option :extra_info,
+         short: '-i',
+         long: '--info',
+         description: 'Print disk model, SN and capacity in output',
+         required: false,
+         boolean: true,
+         default: false
+
   # Main function
   #
   def run
@@ -218,6 +227,11 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
     output = {}
     warnings = []
     criticals = []
+    if config[:extra_info]
+      parameters += ' -i'
+      all = ['List of drives:']
+    end
+
     # TODO: refactor me
     devices.each do |dev| # rubocop:disable Metrics/BlockLength
       puts "#{config[:binary]} #{parameters} #{dev.device_path}" if @smart_debug
@@ -233,6 +247,13 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
       # check overall helath status
       if config[:overall] == 'on' && !output[dev].include?('SMART overall-health self-assessment test result: PASSED')
         criticals << "Overall health check failed on #{dev.device_path}"
+      end
+
+      if config[:extra_info]
+        model = output[dev].match(/Device Model:(\s+)(.*)$/).to_a[2]
+        sn = output[dev].match(/Serial Number:(\s+)(.*)$/).to_a[2]
+        capacity = output[dev].match(/User Capacity:(\s+.*bytes\s+)\[(.*)\]$/).to_a[2].gsub(/\s+/, '')
+        all << "#{dev.device_path} #{model} SN:#{sn} #{capacity}"
       end
 
       # #YELLOW
@@ -256,13 +277,18 @@ class SmartCheckStatus < Sensu::Plugin::Check::CLI
       puts "\n\n" if @smart_debug
     end
 
+    report = if config[:extra_info]
+               (criticals + warnings + all).join("\n")
+             else
+               (criticals + warnings).join("\n")
+             end
     # check the result
     if criticals.size != 0
-      critical criticals.concat(warnings).join("\n")
+      critical report
     elsif warnings.size != 0
-      warning warnings.join("\n")
+      warning report
     else
-      ok 'All device operating properly'
+      ok report
     end
   end
 

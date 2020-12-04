@@ -8,6 +8,7 @@ This CHANGELOG follows the format listed [here](https://github.com/sensu-plugins
 - check-smart-status.rb
   - Removed duplicate loop for finding megaraid devices
   - Cycle through all megaraid controllers instead
+  - Optional extra-info parameter
 
 ## [5.1.6] - 2020-12-03
 ### Removed
