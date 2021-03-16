@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 This CHANGELOG follows the format listed [here](https://github.com/sensu-plugins/community/blob/master/HOW_WE_CHANGELOG.md)
 
 ## [Unreleased]
+
+## [5.1.8] - 2020-03-16
 ### Added
 - `check-disk-usage.rb` - Option to define minimal free space threshold.
 
